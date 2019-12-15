@@ -1,0 +1,19 @@
+{
+  "name": "iter-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Rune Finstad Halvorsen",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "ts-node main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.17",
+    "prettier": "^1.19.1",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.3"
+  },
+  "dependencies": {
+    "runtypes": "^4.0.3"
+  }
+}
