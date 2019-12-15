@@ -1,2 +1,2 @@
-export { ProgressConsumer, ProgressConsumerOpts } from './progress-reader';
+export { ProgressReader, ProgressConsumerOpts } from './progress-reader';
 export { progressFileName, Progress } from './common';

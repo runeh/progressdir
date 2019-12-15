@@ -12,7 +12,7 @@ const defaultOpts: ProgressConsumerOpts = {
   sleepDurationMs: 50,
 };
 
-export class ProgressConsumer {
+export class ProgressReader {
   progress?: Progress;
   yieldedPaths: Set<string>;
   dirPath: string;

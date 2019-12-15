@@ -1,6 +1,4 @@
-// import { ProgressConsumer } from './progress-reader';
-
-import { ProgressConsumer } from './src';
+import { ProgressReader } from './src';
 import { resolve } from 'path';
 
 async function main() {
