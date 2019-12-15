@@ -2,38 +2,37 @@ import { resolve } from 'path';
 import { watch, FSWatcher } from 'fs';
 import { loadProgress, progressFileName, Progress, sleep } from './common';
 
-export interface ProgressConsumerOpts {
+export interface ProgressReaderOpts {
   longestPermittedWaitMs?: number;
   sleepDurationMs?: number;
 }
 
-const defaultOpts: ProgressConsumerOpts = {
+const defaultOpts: ProgressReaderOpts = {
   longestPermittedWaitMs: 60000,
   sleepDurationMs: 50,
 };
 
 export class ProgressReader {
-  progress?: Progress;
-  yieldedPaths: Set<string>;
+  opts: ProgressReaderOpts;
   dirPath: string;
   progressPath: string;
+  progressState?: Progress;
+  yieldedPaths: Set<string>;
   watcher: FSWatcher;
-  opts: ProgressConsumerOpts;
-  lastFileChange: number;
+  lastFileChangeTs: number;
 
-  constructor(dirPath: string, opts?: ProgressConsumerOpts) {
+  constructor(dirPath: string, opts?: ProgressReaderOpts) {
     this.opts = { ...defaultOpts, ...(opts ?? {}) };
     this.dirPath = dirPath;
     this.yieldedPaths = new Set();
     this.progressPath = resolve(dirPath, progressFileName);
-    this.watcher = watch(this.progressPath);
-    this.watcher.on('change', () => this.onProgressUpdate());
+    this.watcher = watch(this.progressPath, () => this.onProgressUpdate());
     this.onProgressUpdate();
   }
 
   async onProgressUpdate() {
-    this.lastFileChange = Date.now();
-    this.progress = await loadProgress(this.progressPath);
+    this.lastFileChangeTs = Date.now();
+    this.progressState = await loadProgress(this.progressPath);
   }
 
   private finalize() {
@@ -41,7 +40,7 @@ export class ProgressReader {
   }
 
   private getAndMark(): string | undefined {
-    const nonYielded = (this.progress?.finishedFiles ?? []).filter(
+    const nonYielded = (this.progressState?.finishedFiles ?? []).filter(
       pth => !this.yieldedPaths.has(pth),
     );
 
@@ -55,7 +54,9 @@ export class ProgressReader {
   }
 
   private hasTimedOut() {
-    return Date.now() - this.lastFileChange > this.opts.longestPermittedWaitMs;
+    return (
+      Date.now() - this.lastFileChangeTs > this.opts.longestPermittedWaitMs
+    );
   }
 
   async next() {
@@ -63,7 +64,7 @@ export class ProgressReader {
       const path = this.getAndMark();
       if (path !== undefined) {
         return { value: path, done: false };
-      } else if (this.progress?.status === 'finished') {
+      } else if (this.progressState?.status === 'finished') {
         this.finalize();
         return { value: undefined, done: true };
       } else if (this.hasTimedOut()) {

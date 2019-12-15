@@ -1,8 +1,8 @@
 import { ProgressReader } from './src';
 import { resolve } from 'path';
 
-async function main() {
-  const progress = new ProgressConsumer(resolve(__dirname, 'testdir'), {
+async function readerMain() {
+  const progress = new ProgressReader(resolve(__dirname, 'testdir'), {
     longestPermittedWaitMs: 40000,
   });
   for await (const x of progress) {
@@ -10,4 +10,4 @@ async function main() {
   }
 }
 
-main();
+readerMain();

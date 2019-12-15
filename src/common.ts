@@ -1,6 +1,6 @@
 import * as rt from 'runtypes';
-import { resolve } from 'path';
-import { watch, FSWatcher, promises } from 'fs';
+import { promises } from 'fs';
+import writeFileAtomic from 'write-file-atomic';
 
 export const progressFileName = '.dirpath.progress.json';
 
@@ -23,6 +23,11 @@ export async function loadProgress(pth: string): Promise<Progress | undefined> {
   } catch (err) {
     return undefined;
   }
+}
+
+export async function writeProgress(pth: string, progress: Progress) {
+  const body = JSON.stringify(progress, null, 2);
+  await writeFileAtomic(pth, body);
 }
 
 export async function sleep(ms: number) {
