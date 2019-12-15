@@ -1,18 +1,45 @@
 import * as rt from 'runtypes';
 import { promises } from 'fs';
 import writeFileAtomic from 'write-file-atomic';
+import { resolve } from 'path';
 
 export const progressFileName = '.dirpath.progress.json';
 
-export const progressRuntype = rt
+export function getProgressPath(dirPath: string) {
+  return resolve(dirPath, progressFileName);
+}
+
+const commonRt = rt
   .Record({
     directoryPath: rt.String,
-    status: rt.Union(rt.Literal('pending'), rt.Literal('finished')),
-    finishedFiles: rt.Array(rt.String).asReadonly(),
+    files: rt.Array(rt.String).asReadonly(),
   })
   .asReadonly();
 
+const finishedProgressRt = rt.Intersect(
+  commonRt,
+  rt.Record({ progress: rt.Literal('finished') }).asReadonly(),
+);
+
+const pendingProgressRt = rt.Intersect(
+  commonRt,
+  rt.Record({ progress: rt.Literal('pending') }).asReadonly(),
+);
+
+const failedProgressRt = rt.Intersect(
+  commonRt,
+  rt.Record({ progress: rt.Literal('failed'), error: rt.Unknown }).asReadonly(),
+);
+
+const progressRuntype = rt.Union(
+  finishedProgressRt,
+  pendingProgressRt,
+  failedProgressRt,
+);
+
 export type Progress = rt.Static<typeof progressRuntype>;
+
+export type ProgressState = Progress['progress'];
 
 export async function loadProgress(pth: string): Promise<Progress | undefined> {
   try {

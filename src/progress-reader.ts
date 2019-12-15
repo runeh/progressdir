@@ -1,6 +1,5 @@
-import { resolve } from 'path';
 import { watch, FSWatcher } from 'fs';
-import { loadProgress, progressFileName, Progress, sleep } from './common';
+import { loadProgress, Progress, sleep, getProgressPath } from './common';
 
 export interface ProgressReaderOpts {
   longestPermittedWaitMs?: number;
@@ -23,9 +22,9 @@ export class ProgressReader {
 
   constructor(dirPath: string, opts?: ProgressReaderOpts) {
     this.opts = { ...defaultOpts, ...(opts ?? {}) };
-    this.dirPath = dirPath;
+    this.dirPath = dirPath.endsWith('/') ? dirPath.slice(0, -1) : dirPath;
     this.yieldedPaths = new Set();
-    this.progressPath = resolve(dirPath, progressFileName);
+    this.progressPath = getProgressPath(this.dirPath);
     this.watcher = watch(this.progressPath, () => this.onProgressUpdate());
     this.onProgressUpdate();
   }
