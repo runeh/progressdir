@@ -8,6 +8,7 @@ import {
   Progress,
   writeProgress,
 } from './common';
+import { remove } from 'fs-extra';
 
 const pipeline = promisify(callbackPipeline);
 
@@ -63,6 +64,10 @@ export class ProgressWriter {
     }
 
     this.update(fullPath);
+  }
+
+  async remove() {
+    await remove(this.dirPath);
   }
 
   async finish() {
