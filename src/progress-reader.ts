@@ -1,24 +1,25 @@
-import { watch, FSWatcher } from 'fs';
-import { loadProgress, Progress, sleep, getProgressPath } from './common';
+import { FSWatcher, watch } from 'fs';
+import { getProgressPath, loadProgress, Progress, sleep } from './common';
+import { remove } from 'fs-extra';
 
 export interface ProgressReaderOpts {
   longestPermittedWaitMs?: number;
   sleepDurationMs?: number;
 }
 
-const defaultOpts: ProgressReaderOpts = {
+const defaultOpts: Required<ProgressReaderOpts> = {
   longestPermittedWaitMs: 60000,
   sleepDurationMs: 50,
 };
 
 export class ProgressReader {
-  opts: ProgressReaderOpts;
+  opts: Required<ProgressReaderOpts>;
   dirPath: string;
   progressPath: string;
   progressState?: Progress;
   yieldedPaths: Set<string>;
   watcher: FSWatcher;
-  lastFileChangeTs: number;
+  lastFileChangeTimeStamp: number;
 
   constructor(dirPath: string, opts?: ProgressReaderOpts) {
     this.opts = { ...defaultOpts, ...(opts ?? {}) };
@@ -26,11 +27,12 @@ export class ProgressReader {
     this.yieldedPaths = new Set();
     this.progressPath = getProgressPath(this.dirPath);
     this.watcher = watch(this.progressPath, () => this.onProgressUpdate());
+    this.lastFileChangeTimeStamp = 0;
     this.onProgressUpdate();
   }
 
   async onProgressUpdate() {
-    this.lastFileChangeTs = Date.now();
+    this.lastFileChangeTimeStamp = Date.now();
     this.progressState = await loadProgress(this.progressPath);
   }
 
@@ -39,7 +41,7 @@ export class ProgressReader {
   }
 
   private getAndMark(): string | undefined {
-    const nonYielded = (this.progressState?.finishedFiles ?? []).filter(
+    const nonYielded = (this.progressState?.files ?? []).filter(
       pth => !this.yieldedPaths.has(pth),
     );
 
@@ -54,7 +56,8 @@ export class ProgressReader {
 
   private hasTimedOut() {
     return (
-      Date.now() - this.lastFileChangeTs > this.opts.longestPermittedWaitMs
+      Date.now() - this.lastFileChangeTimeStamp >
+      this.opts.longestPermittedWaitMs
     );
   }
 
@@ -63,7 +66,7 @@ export class ProgressReader {
       const path = this.getAndMark();
       if (path !== undefined) {
         return { value: path, done: false };
-      } else if (this.progressState?.status === 'finished') {
+      } else if (this.progressState?.progress === 'finished') {
         this.finalize();
         return { value: undefined, done: true };
       } else if (this.hasTimedOut()) {
@@ -73,6 +76,10 @@ export class ProgressReader {
         await sleep(this.opts.sleepDurationMs);
       }
     }
+  }
+
+  async remove() {
+    await remove(this.dirPath);
   }
 
   [Symbol.asyncIterator]() {

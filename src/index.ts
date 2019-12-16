@@ -1,2 +1,3 @@
+export { Progress, progressFileName } from './common';
 export { ProgressReader, ProgressReaderOpts } from './progress-reader';
-export { progressFileName, Progress } from './common';
+export { ProgressWriter } from './progress-writer';
